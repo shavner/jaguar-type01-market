@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jaguar Type 01 Market</title>
+<meta name="description" content="A class forecast of UK registrations of new Jaguars in 2027, resolved from SMMT figures in January 2028.">
+<style>
+  :root {
+    --accent: #800000; --ink: #1f1f1f; --muted: #5b5b5b; --line: #e2ddd8; --bg: #faf8f6; --card: #ffffff;
+    --track: #eeebe7; --bar: #2a6fb8; --right: #1f7a46; --right-bg: #e8f3ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent: #c25454; --ink: #ece9e6; --muted: #a8a29d; --line: #3a3532; --bg: #1a1817; --card: #242120;
+      --track: #34302d; --bar: #5b9be0; --right: #5cc489; --right-bg: #1f3328;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif; font-size: 17px; line-height: 1.5;
+         color: var(--ink); background: var(--bg); }
+  header { background: #800000; color: #fff; padding: 22px 16px; }
+  header .in, main { max-width: 860px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 28px; line-height: 1.2; }
+  header p { margin: 6px 0 0; opacity: .85; }
+  main { padding: 16px 16px 48px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin: 0 0 16px; }
+  h2 { font-size: 19px; margin: 0 0 10px; }
+  .q { font-size: 21px; font-weight: 600; line-height: 1.35; margin: 0 0 10px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 15px; }
+  .status { border-left: 5px solid var(--accent); }
+  .status.done { border-left-color: var(--right); background: var(--right-bg); }
+  .big { font-size: 34px; font-weight: 700; line-height: 1.15; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
+  a { color: var(--accent); }
+  .status.done a { color: var(--right); }
+  .btn { display: inline-block; margin-top: 8px; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--accent);
+         color: var(--accent); text-decoration: none; font-weight: 600; }
+  .row { display: grid; grid-template-columns: minmax(110px, 170px) 1fr 52px; gap: 10px; align-items: center; margin: 8px 0; }
+  .track { background: var(--track); border-radius: 4px; height: 24px; overflow: hidden; }
+  .fill { height: 100%; background: var(--bar); border-radius: 0 4px 4px 0; }
+  .row.right .fill { background: var(--right); }
+  .row.right .lab { color: var(--right); font-weight: 700; }
+  .pct { text-align: right; font-variant-numeric: tabular-nums; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { padding: 7px 8px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); border-top: 0; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th.right, td.right { color: var(--right); font-weight: 700; }
+  ul { padding-left: 20px; margin: 6px 0; }
+  .err { color: #b00020; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <div class="in">
+    <h1 id="title">Jaguar Type 01: a class forecast</h1>
+    <p id="byline"></p>
+  </div>
+</header>
+<main>
+  <section id="loading" class="muted">Loading…</section>
+
+  <section class="status hidden" id="status"></section>
+
+  <section class="hidden" id="question">
+    <p class="q" id="qtext"></p>
+    <p class="muted small" id="context"></p>
+  </section>
+
+  <section class="hidden" id="forecast">
+    <h2>What the class forecast</h2>
+    <p class="muted small" id="fnote"></p>
+    <div id="bars"></div>
+  </section>
+
+  <section class="hidden" id="teams">
+    <h2 id="teamsHead">Every team's bet</h2>
+    <p class="muted small" id="tnote"></p>
+    <div class="scroll"><table id="table"></table></div>
+  </section>
+
+  <section id="rules" class="hidden small">
+    <h2>How it works</h2>
+    <ul>
+      <li>Students played in teams. Each team spread <b id="rchips">100</b> chips over the answers.</li>
+      <li>All the chips form one pool. When the answer is known, the whole pool goes to the teams that backed it,
+        in proportion to their chips on it. If nobody backed it, nobody wins.</li>
+      <li>The answer is the first full-year 2027 figure SMMT publishes for Jaguar (all models) in its UK new car
+        registrations by brand. Later revisions don't count.</li>
+      <li><span id="when">This page fills in the result by itself in January 2028.</span> The bets are
+        <a id="history" href="#">frozen in the public history of this page</a>, so you can check that nothing changed after class.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+const REPO = "shavner/jaguar-type01-market";
+const BYLINE = "Forecast made by an MBA marketing class, Fall 2026.";
+const $ = (id) => document.getElementById(id);
+const el = (tag, text, cls) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
+const fmt = (n) => Math.round(n).toLocaleString("en-GB");
+const day = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+
+async function getJSON(path) {
+  const r = await fetch(path + "?t=" + Date.now(), { cache: "no-store" });
+  if (!r.ok) throw new Error(path + ": " + r.status);
+  return r.json();
+}
+
+function bandOf(q, n) {
+  return q.bands.findIndex(([lo, hi]) => n >= lo && (hi === null || n <= hi));
+}
+
+function render(M, R) {
+  const q = M.questions[0];
+  const chips = M.chips || 100;
+  const teams = (M.teams || []).filter((t) => t.bets && t.bets[q.id]);
+  const n = R && Number.isFinite(R.registrations) ? R.registrations : null;
+  const ans = n === null ? -1 : bandOf(q, n);
+
+  $("byline").textContent = BYLINE;
+  $("qtext").textContent = q.text;
+  $("context").textContent = q.context || "";
+  $("rchips").textContent = chips;
+  $("history").href = `https://github.com/${REPO}/commits/main/market.json`;
+
+  // Status: waiting, or the result.
+  const st = $("status");
+  st.innerHTML = "";
+  if (ans >= 0) {
+    $("when").textContent = "The result above was filled in from SMMT's figures.";
+    st.classList.add("done");
+    st.append(el("div", "The result", "muted small"),
+      el("div", `${fmt(n)} new Jaguars`, "big"),
+      el("div", `were registered in the UK in 2027. The right answer was “${q.options[ans]}”.`));
+    if (R.source) {
+      const p = el("p", "", "small");
+      const a = el("a", "SMMT figures"); a.href = R.source;
+      p.append("Source: ", a, R.resolved_at ? `, read on ${day(R.resolved_at)}.` : ".");
+      if (R.how === "manual") p.append(" Entered by hand from SMMT's release.");
+      st.appendChild(p);
+    }
+  } else {
+    st.append(el("div", "Resolves in January 2028", "big"),
+      el("div", "when SMMT publishes UK new car registrations for 2027. This page will show the answer and the winners by itself."));
+    const a = el("a", "Add the date to your calendar", "btn"); a.href = "reveal.ics"; a.download = "jaguar-type01-results.ics";
+    st.appendChild(a);
+  }
+
+  // The crowd forecast: share of all chips on each answer.
+  const totals = q.options.map((_, i) => teams.reduce((s, t) => s + t.bets[q.id][i], 0));
+  const all = totals.reduce((s, c) => s + c, 0);
+  const bars = $("bars");
+  bars.innerHTML = "";
+  if (!teams.length) {
+    $("fnote").textContent = "The bets will be posted here after class.";
+  } else {
+    const frozen = M.exported_at ? ` Bets frozen on ${day(M.exported_at)}.` : "";
+    $("fnote").textContent = `Share of all chips on each answer, from ${teams.length} teams.${frozen}`;
+    q.options.forEach((label, i) => {
+      const row = el("div", undefined, "row" + (i === ans ? " right" : ""));
+      const track = el("div", undefined, "track");
+      const fill = el("div", undefined, "fill"); fill.style.width = (all ? 100 * totals[i] / all : 0) + "%";
+      track.appendChild(fill);
+      row.append(el("div", label, "lab"), track, el("div", (all ? Math.round(100 * totals[i] / all) : 0) + "%", "pct"));
+      bars.appendChild(row);
+    });
+  }
+
+  // Teams: every bet before the result; the leaderboard after.
+  const table = $("table");
+  table.innerHTML = "";
+  $("teams").classList.toggle("hidden", !teams.length);
+  if (teams.length && ans < 0) {
+    $("teamsHead").textContent = "Every team's bet";
+    $("tnote").textContent = "Chips on each answer, out of " + chips + ".";
+    const h = el("tr"); h.appendChild(el("th", "Team"));
+    q.options.forEach((label) => h.appendChild(el("th", label, "n")));
+    table.appendChild(h);
+    for (const t of [...teams].sort((a, b) => a.num - b.num)) {
+      const tr = el("tr"); tr.appendChild(el("td", t.name));
+      t.bets[q.id].forEach((c) => tr.appendChild(el("td", String(c), "n")));
+      table.appendChild(tr);
+    }
+  } else if (teams.length) {
+    const pool = chips * teams.length;
+    const onRight = totals[ans];
+    const pays = onRight ? pool / onRight : 0;
+    $("teamsHead").textContent = "Leaderboard";
+    $("tnote").textContent = onRight
+      ? `The pool was ${fmt(pool)} chips. Each chip on “${q.options[ans]}” paid ${pays.toFixed(2)}.`
+      : `Nobody backed “${q.options[ans]}”, so nobody won.`;
+    const rows = teams.map((t) => ({ name: t.name, num: t.num, on: t.bets[q.id][ans], won: Math.round(t.bets[q.id][ans] * pays) }));
+    rows.sort((a, b) => b.won - a.won || a.num - b.num);
+    rows.forEach((r) => { r.rank = 1 + rows.filter((x) => x.won > r.won).length; });
+    const h = el("tr");
+    h.append(el("th", "#", "n"), el("th", "Team"), el("th", `Chips on “${q.options[ans]}”`, "n right"), el("th", "Winnings", "n"));
+    table.appendChild(h);
+    for (const r of rows) {
+      const tr = el("tr");
+      tr.append(el("td", String(r.rank), "n"), el("td", r.name), el("td", String(r.on), "n right"), el("td", fmt(r.won), "n"));
+      table.appendChild(tr);
+    }
+  }
+
+  for (const id of ["status", "question", "forecast", "rules"]) $(id).classList.remove("hidden");
+  $("loading").classList.add("hidden");
+}
+
+Promise.all([getJSON("market.json"), getJSON("result.json")])
+  .then(([M, R]) => render(M, R))
+  .catch((e) => { $("loading").textContent = "Could not load the market (" + e.message + "). Try reloading."; $("loading").className = "err"; });
+</script>
+</body>
+</html>

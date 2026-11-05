@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//jaguar-type01-market//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:jaguar-type01-market-results@shavner.github.io
+DTSTAMP:20261105T120000Z
+DTSTART;VALUE=DATE:20280110
+DTEND;VALUE=DATE:20280111
+SUMMARY:Jaguar Type 01 market: results are out
+DESCRIPTION:How many new Jaguars were registered in the UK in 2027? See how y
+ our team did: https://shavner.github.io/jaguar-type01-market/
+URL:https://shavner.github.io/jaguar-type01-market/
+TRANSP:TRANSPARENT
+END:VEVENT
+END:VCALENDAR

@@ -1,0 +1,40 @@
+{
+  "title": "The Jaguar Type 01 market",
+  "intro": "Jaguar registered 16,617 new cars in the UK in 2024 and 1,725 in 2025, while it sold off old stock. The Type 01 starts at £129,950; orders open in early 2027 and first deliveries are promised for the second half of the year. This market resolves in January 2028 on a public web page, and your team name will appear there: pick one you are happy to see in public.",
+  "chips": 100,
+  "phase": "open",
+  "exported_at": null,
+  "questions": [
+    {
+      "id": "type01",
+      "text": "How many new Jaguars (all models) will be registered in the UK in calendar 2027, by SMMT's full-year figures?",
+      "options": [
+        "fewer than 250",
+        "250 to 749",
+        "750 to 1,725",
+        "more than 1,725"
+      ],
+      "bands": [
+        [
+          0,
+          249
+        ],
+        [
+          250,
+          749
+        ],
+        [
+          750,
+          1725
+        ],
+        [
+          1726,
+          null
+        ]
+      ],
+      "context": "Jaguar registered 16,617 new cars in the UK in 2024 and 1,725 in 2025, while it sold off old stock. The Type 01, its first car after the 2024 rebrand, was revealed in October 2026 from £129,950; orders open in early 2027 and first deliveries are promised for the second half of the year.",
+      "source": "SMMT, UK new car registrations by brand, year to date December 2027: the first figure published (early January 2028)"
+    }
+  ],
+  "teams": []
+}

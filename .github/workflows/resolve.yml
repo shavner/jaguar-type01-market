@@ -1,0 +1,81 @@
+name: Resolve
+
+# Every day in January. resolve.py does nothing before 4 January 2028 or once result.json holds a number, so
+# the runs in January 2027 are no-ops. When it finds the figure it commits result.json and redeploys the page;
+# when it needs a person it opens an issue (GitHub emails the repo owner).
+on:
+  schedule:
+    - cron: "17 9 * 1 *"  # 09:17 UTC; SMMT publishes at 09:00 UK time
+  workflow_dispatch:
+    inputs:
+      args:
+        description: 'Extra arguments for a test run, e.g. --dry-run --year 2026 --period "October 2026" --today 2028-01-05 (a test run never commits or opens an issue)'
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  issues: write
+  pages: write
+  id-token: write
+
+concurrency: resolve
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      resolved: ${{ steps.commit.outputs.resolved }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - id: run
+        env:
+          ARGS: ${{ inputs.args }}
+        run: |
+          set +e
+          eval "python3 resolve.py $ARGS" | tee resolve.log
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          if [ -n "$ARGS" ]; then echo "test=true" >> "$GITHUB_OUTPUT"; fi
+          exit 0
+
+      - id: commit
+        if: steps.run.outputs.code == '0' && steps.run.outputs.test != 'true'
+        run: |
+          if git diff --quiet result.json; then echo "resolved=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add result.json
+          git commit -m "Resolve the market from SMMT's full-year figures"
+          git push
+          echo "resolved=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.run.outputs.code == '2' && steps.run.outputs.test != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Resolve the Type 01 market by hand"
+          open=$(gh issue list --state open --search "in:title \"$title\"" --json number --jq 'length')
+          if [ "$open" != "0" ]; then echo "Issue already open."; exit 0; fi
+          {
+            echo "The automatic check could not read Jaguar's 2027 UK registrations from SMMT."
+            echo
+            echo '```'
+            cat resolve.log
+            echo '```'
+            echo
+            echo "To resolve by hand: find Jaguar's year-to-date December 2027 figure on https://www.smmt.co.uk/vehicle-data/car-registrations/"
+            echo "(the first full-year figure SMMT published), then edit result.json on GitHub so it reads:"
+            echo
+            echo '```json'
+            echo '{"registrations": 1234, "source": "<link to the SMMT page or release>", "resolved_at": "2028-01-10", "how": "manual"}'
+            echo '```'
+            echo
+            echo "Committing the edit redeploys the page. Close this issue afterwards."
+          } > body.md
+          gh issue create --title "$title" --body-file body.md
+
+  deploy:
+    needs: resolve
+    if: needs.resolve.outputs.resolved == 'true'
+    uses: ./.github/workflows/pages.yml

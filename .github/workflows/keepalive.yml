@@ -1,0 +1,34 @@
+name: Keep alive
+
+# GitHub switches off scheduled workflows in a public repository after 60 days with no activity. Until the
+# market is resolved, this commits a one-line heartbeat on the 1st of each month and re-enables the
+# scheduled workflows, so the January 2028 run still happens.
+on:
+  schedule:
+    - cron: "41 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! python3 -c 'import json, sys; sys.exit(json.load(open("result.json"))["registrations"] is not None)'; then
+            echo "Resolved; nothing to keep alive."
+            exit 0
+          fi
+          date -u +%Y-%m-%d > heartbeat.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add heartbeat.txt
+          git commit -m "Heartbeat: keep the January job switched on" || true
+          git push
+          gh workflow enable resolve.yml
+          gh workflow enable keepalive.yml
